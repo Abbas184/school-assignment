@@ -52,4 +52,21 @@ export default async function ShowSchoolsPage() {
       <Footer />
     </div>
   );
+}async function getSchools() {
+  // This is the new, more robust logic for setting the API URL.
+  let apiUrl = "http://localhost:3000"; // Default for local development
+  if (process.env.VERCEL_URL) {
+    // This variable is automatically set by Vercel.
+    apiUrl = `https://${process.env.VERCEL_URL}`;
+  }
+
+  try {
+    const res = await fetch(`${apiUrl}/api/getSchools`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Failed to fetch schools. Status: ${res.status}`);
+    return res.json();
+  } catch (error) {
+    // This will now log more helpful info on the server.
+    console.error("[getSchools Error] Fetching from:", apiUrl, error);
+    return [];
+  }
 }
