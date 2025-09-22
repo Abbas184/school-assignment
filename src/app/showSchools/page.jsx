@@ -5,13 +5,13 @@ import SchoolCard from '@/components/SchoolCard';
 import { getSchools } from '@/lib/data'; // <-- IMPORT THE DIRECT LOGIC
 
 export default async function ShowSchoolsPage() {
-  // No more fetch! Just call the function directly.
+  // No more fetch! We call the database logic directly.
+  // This works perfectly during the build process.
   const schools = await getSchools();
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
-      
       <main className="flex-grow">
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
@@ -38,7 +38,6 @@ export default async function ShowSchoolsPage() {
           )}
         </div>
       </main>
-      
       <Footer />
     </div>
   );
