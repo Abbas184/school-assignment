@@ -1,4 +1,4 @@
-// This is a comment to trigger a new deployment.
+// Forcing a clean redeploy to sync all environment variables
 import { redirect } from 'next/navigation';
 
 export default function HomePage() {
