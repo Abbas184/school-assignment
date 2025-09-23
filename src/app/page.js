@@ -1,3 +1,4 @@
+// This is a comment to trigger a new deployment.
 import { redirect } from 'next/navigation';
 
 export default function HomePage() {
@@ -6,6 +7,7 @@ export default function HomePage() {
   // whenever they visit the main root URL.
   redirect('/showSchools');
 
-  // We return null because the user is sent away before anything can be rendered.
+  // We return null because the user is sent away before anything can be rendered .
+
   return null;
 }
