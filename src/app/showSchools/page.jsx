@@ -1,15 +1,32 @@
+"use client";
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react'; // <-- Import session hook
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getSchools } from '@/lib/data'; // Import the direct data fetching function
-import SchoolList from '@/components/SchoolList'; // Import our new interactive component
+import SchoolList from '@/components/SchoolList';
 
-// This is now a Server Component again (no "use client")
-export default async function ShowSchoolsPage() {
-  // 1. Fetch the data on the SERVER before sending anything to the user.
-  const initialSchools = await getSchools();
+export default function ShowSchoolsPage() {
+  const { data: session } = useSession(); // <-- Get session data
+  const [initialSchools, setInitialSchools] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 2. Render the page with all components.
+  // We now fetch the initial data on the client side
+  useEffect(() => {
+    const fetchInitialSchools = async () => {
+      try {
+        const res = await fetch('/api/getSchools');
+        const data = await res.json();
+        setInitialSchools(data);
+      } catch (err) {
+        console.error("Failed to fetch initial schools", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchInitialSchools();
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
@@ -20,14 +37,20 @@ export default async function ShowSchoolsPage() {
               <h1 className="text-4xl font-extrabold text-gray-800">Our Schools</h1>
               <p className="text-gray-500 mt-1">Discover the best schools in our directory.</p>
             </div>
-            <Link href="/addSchool" className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md mt-4 sm:mt-0 whitespace-nowrap">
-              + Add Your School
-            </Link>
+            {/* --- THIS IS THE KEY CHANGE --- */}
+            {/* Only show the "Add School" button if the user is an admin */}
+            {session?.user?.role === 'admin' && (
+              <Link href="/addSchool" className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md mt-4 sm:mt-0 whitespace-nowrap">
+                + Add Your School
+              </Link>
+            )}
           </div>
 
-          {/* 3. Pass the pre-loaded data to our interactive client component */}
-          <SchoolList initialSchools={initialSchools} />
-
+          {isLoading ? (
+            <p className="text-center text-gray-500">Loading schools...</p>
+          ) : (
+            <SchoolList initialSchools={initialSchools} />
+          )}
         </div>
       </main>
       <Footer />
