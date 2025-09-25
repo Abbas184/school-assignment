@@ -5,14 +5,12 @@ import dbConnect from '@/lib/db';
 import School from '@/models/School';
 import cloudinary from 'cloudinary';
 
-// Configure Cloudinary with your environment variables
 cloudinary.v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Helper function to upload the file buffer to Cloudinary
 async function uploadToCloudinary(fileBuffer) {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.v2.uploader.upload_stream(
@@ -27,18 +25,11 @@ async function uploadToCloudinary(fileBuffer) {
 }
 
 export async function POST(req) {
-  // --- SECURITY CHECK AT THE VERY TOP ---
-  // Get the server-side session
   const session = await getServerSession(authOptions);
-
-  // Check if a session exists and if the user's role is 'admin'
   if (!session || session.user.role !== 'admin') {
-    // If not, return a 403 Forbidden error
     return NextResponse.json({ message: "Unauthorized: Access is restricted to admins." }, { status: 403 });
   }
-  // --- END OF SECURITY CHECK ---
 
-  // If the check passes, proceed with the original logic
   await dbConnect();
 
   try {
@@ -61,10 +52,11 @@ export async function POST(req) {
       contact: formData.get('contact'),
       email_id: formData.get('email_id'),
       image: imageUrl,
+      // The rating is now explicitly converted to a Number before saving.
+      rating: Number(formData.get('rating')),
     });
     
     await newSchool.save();
-
     return NextResponse.json({ message: 'School added successfully!' }, { status: 201 });
 
   } catch (error) {

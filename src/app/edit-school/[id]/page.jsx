@@ -1,69 +1,69 @@
 "use client";
 
 import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-export default function AddSchoolPage() {
+export default function EditSchoolPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors }, watch } = useForm();
+  const params = useParams();
+  const { id } = params;
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const imageFile = watch('image');
-  const fileName = imageFile?.[0]?.name || "No file chosen";
+  const [schoolName, setSchoolName] = useState('Loading...');
+
+  // Fetch the existing school data when the page loads
+  useEffect(() => {
+    if (id) {
+      fetch(`/api/schools/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data) {
+            reset(data); // Pre-fill the form with fetched data
+            setSchoolName(data.name);
+          }
+        });
+    }
+  }, [id, reset]);
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     setErrorMessage('');
-    const formData = new FormData();
-    Object.keys(data).forEach(key => {
-      if (key === 'image') {
-        formData.append(key, data.image[0]);
-      } else {
-        formData.append(key, data[key]);
-      }
-    });
     try {
-      const response = await fetch('/api/addSchool', {
-        method: 'POST',
-        body: formData,
+      // Convert rating to a number just in case it's a string from the form
+      const updatedData = { ...data, rating: Number(data.rating) };
+
+      const response = await fetch(`/api/schools/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
       });
+
       if (response.ok) {
-        alert('School added successfully!');
+        alert('School updated successfully!');
         router.push('/showSchools');
       } else {
         const result = await response.json();
-        setErrorMessage(`Error: ${result.message || 'Something went wrong.'}`);
+        setErrorMessage(result.message || 'Failed to update school.');
       }
     } catch (error) {
-      setErrorMessage('An unexpected error occurred. Please check your connection.');
-      console.error(error);
+      setErrorMessage('An unexpected error occurred.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (status === 'loading') {
-    return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
+    return <p>Loading session...</p>;
   }
   if (status === 'unauthenticated' || session?.user?.role !== 'admin') {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center bg-white p-12 rounded-lg shadow-md">
-            <h1 className="text-3xl font-bold text-red-600">Access Denied</h1>
-            <p className="mt-4 text-gray-600">You must be logged in as an admin to access this page.</p>
-            <button onClick={() => router.push('/login')} className="mt-6 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Go to Login</button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+    return <p>Access Denied. You must be an admin to edit schools.</p>;
   }
 
   return (
@@ -71,7 +71,9 @@ export default function AddSchoolPage() {
       <Header />
       <main className="flex-grow flex items-center justify-center p-4">
         <div className="max-w-xl w-full bg-white p-8 rounded-xl shadow-lg">
-          <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Add School Information</h1>
+          <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
+            Edit: <span className="text-blue-600">{schoolName}</span>
+          </h1>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">School Name</label>
@@ -97,30 +99,24 @@ export default function AddSchoolPage() {
             </div>
             <div>
               <label htmlFor="contact" className="block text-sm font-medium text-gray-700">Contact Number</label>
-              <input id="contact" type="text" {...register('contact', { required: 'Contact is required', pattern: { value: /^[0-9]+$/, message: "Please enter a valid number." } })} className="mt-1 block w-full px-3 py-2 border rounded-md" />
+              <input id="contact" type="text" {...register('contact', { required: 'Contact is required' })} className="mt-1 block w-full px-3 py-2 border rounded-md" />
               {errors.contact && <p className="text-red-500 text-xs mt-1">{errors.contact.message}</p>}
             </div>
             <div>
               <label htmlFor="email_id" className="block text-sm font-medium text-gray-700">Email ID</label>
-              <input id="email_id" type="email" {...register('email_id', { required: 'Email is required', pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' } })} className="mt-1 block w-full px-3 py-2 border rounded-md" />
+              <input id="email_id" type="email" {...register('email_id', { required: 'Email is required' })} className="mt-1 block w-full px-3 py-2 border rounded-md" />
               {errors.email_id && <p className="text-red-500 text-xs mt-1">{errors.email_id.message}</p>}
             </div>
             <div>
               <label htmlFor="rating" className="block text-sm font-medium text-gray-700">Rating (1-5)</label>
-              <input id="rating" type="number" step="0.1" {...register('rating', { required: 'Rating is required', min: { value: 1, message: 'Rating must be at least 1' }, max: { value: 5, message: 'Rating must be no more than 5' } })} className="mt-1 block w-full px-3 py-2 border rounded-md" />
+              <input id="rating" type="number" step="0.1" {...register('rating', { required: 'Rating is required', valueAsNumber: true, min: { value: 1, message: 'Must be at least 1' }, max: { value: 5, message: 'Must be no more than 5' } })} className="mt-1 block w-full px-3 py-2 border rounded-md" />
               {errors.rating && <p className="text-red-500 text-xs mt-1">{errors.rating.message}</p>}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">School Image</label>
-              <div className="mt-1 flex items-center">
-                <label htmlFor="image" className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Upload File</label>
-                <input id="image" type="file" accept="image/*" {...register('image', { required: 'School image is required' })} className="hidden" />
-                <span className="ml-3 text-gray-500">{fileName}</span>
-              </div>
-              {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
-            </div>
+            <p className="text-xs text-gray-500">Note: Image cannot be changed from the edit form.</p>
             {errorMessage && <p className="text-red-500 text-sm text-center">{errorMessage}</p>}
-            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400">{isSubmitting ? 'Submitting...' : 'Add School'}</button>
+            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400">
+              {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
+            </button>
           </form>
         </div>
       </main>
