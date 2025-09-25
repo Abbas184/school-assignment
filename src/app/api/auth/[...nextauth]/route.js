@@ -14,62 +14,47 @@ export const authOptions = {
       },
       async authorize(credentials) {
         await dbConnect();
-
         const user = await User.findOne({ email: credentials.email });
-        if (!user) {
-          throw new Error("No user found with this email.");
-        }
+        if (!user) throw new Error("No user found with this email.");
+        
+        const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
+        if (!isPasswordCorrect) throw new Error("Incorrect password.");
 
-        const isPasswordCorrect = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordCorrect) {
-          throw new Error("Incorrect password.");
-        }
-
-        // --- THIS IS THE CRITICAL FIX ---
-        // Instead of returning the full 'user' object from the database,
-        // we return a new, plain object with only the data we need.
-        // This guarantees the 'role' is included correctly.
-        return {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role, // Explicitly include the role
-        };
-        // --- END OF FIX ---
+        return { id: user._id, name: user.name, email: user.email, role: user.role };
       }
     })
   ],
+  // --- THIS IS THE CRITICAL FIX ---
   callbacks: {
-    // This callback receives the plain user object from 'authorize'
-    async jwt({ token, user }) {
+    // This callback is triggered when a JWT is created or updated.
+    async jwt({ token, user, trigger, session }) {
+      // On initial sign-in, add user properties to the token
       if (user) {
-        token.role = user.role;
         token.id = user.id;
+        token.role = user.role;
+      }
+      // If the session is updated (e.g., name change), update the token
+      if (trigger === "update" && session?.name) {
+        token.name = session.name;
       }
       return token;
     },
-    // This callback builds the session object from the token
+    // This callback creates the session object from the token
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role;
         session.user.id = token.id;
+        session.user.role = token.role;
+        // Ensure the name in the session matches the potentially updated token
+        session.user.name = token.name; 
       }
       return session;
     }
   },
-  session: {
-    strategy: "jwt",
-  },
+  // --- END OF FIX ---
+  session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
-  pages: {
-    signIn: '/login',
-  },
+  pages: { signIn: '/login' },
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };
