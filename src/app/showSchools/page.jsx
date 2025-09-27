@@ -30,12 +30,26 @@ async function getPageData({ search, city, state, sortBy, page: pageStr }) {
   const userFavoritesPromise = session?.user?.id 
     ? User.findById(session.user.id).select('favorites').lean() 
     : Promise.resolve(null);
+  
+  const allSchoolsForFiltering = await School.find({}, 'city state').lean();
+  
+  const states = [...new Set(allSchoolsForFiltering.map(s => s.state))].sort();
+  
+  const stateCityMap = allSchoolsForFiltering.reduce((acc, school) => {
+    if (!acc[school.state]) {
+      acc[school.state] = new Set();
+    }
+    acc[school.state].add(school.city);
+    return acc;
+  }, {});
 
-  const [initialSchools, totalSchools, states, cities, user] = await Promise.all([
+  for (const state in stateCityMap) {
+    stateCityMap[state] = [...stateCityMap[state]].sort();
+  }
+
+  const [initialSchools, totalSchools, user] = await Promise.all([
     School.find(filter).sort(sortOptions).skip(skip).limit(SCHOOLS_PER_PAGE).lean(),
     School.countDocuments(filter),
-    School.distinct('state').then(s => s.sort()),
-    School.distinct('city').then(c => c.sort()),
     userFavoritesPromise
   ]);
 
@@ -47,17 +61,13 @@ async function getPageData({ search, city, state, sortBy, page: pageStr }) {
         totalPages: Math.ceil(totalSchools / SCHOOLS_PER_PAGE)
     },
     states, 
-    cities,
-    // --- THIS IS THE FIX ---
-    // We now safely check if 'user' exists AND if 'user.favorites' exists
-    // before we try to map over it. If either is missing, we return an empty array.
+    stateCityMap,
     userFavorites: (user && user.favorites) ? user.favorites.map(f => f.toString()) : []
-    // --- END OF FIX ---
   };
 }
 
 export default async function ShowSchoolsPage({ searchParams }) {
-  const { session, initialData, states, cities, userFavorites } = await getPageData(searchParams);
+  const { session, initialData, states, stateCityMap, userFavorites } = await getPageData(searchParams);
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -65,14 +75,26 @@ export default async function ShowSchoolsPage({ searchParams }) {
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-extrabold">Our Schools</h1>
-          {session?.user?.role === 'admin' && <Link href="/addSchool" className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg">+ Add School</Link>}
+          
+          {/* --- THIS IS THE FIX --- */}
+          {session?.user?.role === 'admin' && (
+            <Link 
+              href="/addSchool" 
+              className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md mt-4 sm:mt-0 whitespace-nowrap"
+            >
+              + Add Your School
+            </Link>
+          )}
+          {/* --- END OF FIX --- */}
+
         </div>
         <FilterableSchoolList 
           initialData={initialData} 
-          cities={cities}
           states={states}
+          stateCityMap={stateCityMap}
           session={session}
           userFavorites={userFavorites}
+          searchParams={searchParams}
         />
       </main>
       <Footer />
