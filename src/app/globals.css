@@ -37,3 +37,19 @@ body {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+/* ===== SAFE GLOBAL STYLING OVERRIDES FOR TEXT CONTRAST ===== */
+
+/* Targets all input fields, text areas, and select dropdowns */
+input,
+textarea,
+select {
+  /* Sets the color of the text the user TYPES to a dark gray */
+  color: #1f2937; /* Tailwind's gray-800 */
+}
+
+/* Specifically targets the placeholder text (e.g., "Search by school name...") */
+::placeholder {
+  /* Makes the placeholder a medium gray so it's visible but still a hint */
+  color: #6b7280; /* Tailwind's gray-500 */
+  opacity: 1; /* Overrides browser defaults */
+}
