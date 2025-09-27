@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -7,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import StarRating from './StarRating';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 
-// A new sub-component for displaying a single review
+// This is the sub-component for displaying a single review
 function ReviewItem({ review, session, onEdit, onDelete }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedComment, setEditedComment] = useState(review.comment);
@@ -24,10 +23,9 @@ function ReviewItem({ review, session, onEdit, onDelete }) {
   return (
     <div className="border-b last:border-b-0 py-4">
       <div className="flex justify-between items-center">
-        <p className="font-semibold">{review.user?.name || "Anonymous"}</p>
+        <p className="font-semibold text-gray-800">{review.user?.name || "Anonymous"}</p>
         {!isEditing && <StarRating rating={review.rating} />}
       </div>
-
       {isEditing ? (
         <div className="mt-2">
           <select value={editedRating} onChange={(e) => setEditedRating(Number(e.target.value))} className="w-full p-2 border rounded-md mb-2">
@@ -40,9 +38,8 @@ function ReviewItem({ review, session, onEdit, onDelete }) {
           </div>
         </div>
       ) : (
-        <p className="text-gray-600 mt-1">{review.comment}</p>
+        <p className="text-gray-700 mt-1">{review.comment}</p>
       )}
-
       <div className="flex items-center space-x-4 mt-2">
         {isOwner && !isEditing && (
           <button onClick={() => setIsEditing(true)} className="text-xs text-blue-600 hover:underline flex items-center"><FaEdit className="mr-1" /> Edit</button>
@@ -55,8 +52,7 @@ function ReviewItem({ review, session, onEdit, onDelete }) {
   );
 }
 
-
-// The main component that manages the list of reviews
+// This is the main component that manages the list of reviews
 export default function ReviewSection({ schoolId }) {
   const { data: session, status } = useSession();
   const [reviews, setReviews] = useState([]);
@@ -78,15 +74,10 @@ export default function ReviewSection({ schoolId }) {
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/reviews', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ comment, rating, schoolId }),
-    });
+    const res = await fetch('/api/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ comment, rating, schoolId }) });
     if (res.ok) {
-      toast.success("Review submitted successfully!");
-      setComment('');
-      setRating(5);
+      toast.success("Review submitted!");
+      setComment(''); setRating(5);
       fetchReviews();
     } else {
       toast.error("Failed to submit review.");
@@ -94,13 +85,9 @@ export default function ReviewSection({ schoolId }) {
   };
 
   const handleEditReview = async (reviewId, newComment, newRating) => {
-    const res = await fetch(`/api/reviews/${reviewId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ comment: newComment, rating: newRating }),
-    });
+    const res = await fetch(`/api/reviews/${reviewId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ comment: newComment, rating: newRating }) });
     if (res.ok) {
-      toast.success("Review updated successfully!");
+      toast.success("Review updated!");
       fetchReviews();
     } else {
       toast.error("Failed to update review.");
@@ -108,10 +95,10 @@ export default function ReviewSection({ schoolId }) {
   };
 
   const handleDeleteReview = async (reviewId) => {
-    if (window.confirm("Are you sure you want to delete this review?")) {
+    if (window.confirm("Delete this review?")) {
       const res = await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success("Review deleted successfully!");
+        toast.success("Review deleted!");
         fetchReviews();
       } else {
         toast.error("Failed to delete review.");
@@ -121,15 +108,19 @@ export default function ReviewSection({ schoolId }) {
 
   return (
     <div className="mt-8 bg-white p-6 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4">Reviews</h2>
+      <h2 className="text-2xl font-bold mb-4 text-gray-900">Reviews</h2>
       
       {status === "authenticated" && (
         <form onSubmit={handleSubmitReview} className="mb-6 border-b pb-6">
-          <h3 className="text-lg font-semibold mb-2">Leave your Review</h3>
+          <h3 className="text-lg font-semibold mb-2 text-gray-800">Leave your Review</h3>
           <div className="mb-2">
-            <label className="block text-sm font-medium">Your Rating</label>
+            <label className="block text-sm font-medium text-gray-800">Your Rating</label>
             <select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="w-full p-2 border rounded-md">
-              <option value={5}>5 - Excellent</option><option value={4}>4 - Good</option><option value={3}>3 - Average</option><option value={2}>2 - Poor</option><option value={1}>1 - Terrible</option>
+              <option value={5}>5 - Excellent</option>
+              <option value={4}>4 - Good</option>
+              <option value={3}>3 - Average</option>
+              <option value={2}>2 - Poor</option>
+              <option value={1}>1 - Terrible</option>
             </select>
           </div>
           <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your experience..." required className="w-full p-2 border rounded-md"></textarea>
@@ -139,14 +130,14 @@ export default function ReviewSection({ schoolId }) {
 
       {status === "unauthenticated" && (
         <div className="text-center py-4 border-b mb-6">
-            <p className="text-gray-500 mb-4">Want to share your experience?</p>
-            <Link href="/login" className="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700">
-              Login to Leave a Review
-            </Link>
+          <p className="text-gray-600 mb-4">Want to share your experience?</p>
+          <Link href="/login" className="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700">
+            Login to Leave a Review
+          </Link>
         </div>
       )}
 
-      {isLoading ? <p>Loading reviews...</p> : (
+      {isLoading ? <p className="text-gray-600">Loading reviews...</p> : (
         <div className="space-y-4">
           {reviews.length > 0 ? reviews.map(review => (
             <ReviewItem 
@@ -158,7 +149,7 @@ export default function ReviewSection({ schoolId }) {
             />
           )) : (
             <div className="text-center py-4">
-              <p className="text-gray-500">No reviews yet. Be the first to share your experience!</p>
+              <p className="text-gray-600">No reviews yet. Be the first to share your experience!</p>
             </div>
           )}
         </div>
