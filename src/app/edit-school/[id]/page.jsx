@@ -3,8 +3,8 @@ import { useForm } from 'react-hook-form';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import Header from '@/components/Header'; // <-- The missing import
-import Footer from '@/components/Footer'; // <-- The missing import
+import Header from '@/components/Header'; // <-- Restored
+import Footer from '@/components/Footer'; // <-- Restored
 import { toast } from 'react-hot-toast';
 
 export default function EditSchoolPage() {
@@ -18,28 +18,19 @@ export default function EditSchoolPage() {
 
   useEffect(() => {
     if (id) {
-      fetch(`/api/schools/${id}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data) {
-            reset(data);
-            setSchoolName(data.name);
-          }
-        });
+      fetch(`/api/schools/${id}`).then(res => res.json()).then(data => {
+        if (data) { reset(data); setSchoolName(data.name); }
+      });
     }
   }, [id, reset]);
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
-    const toastId = toast.loading('Updating school...');
+    const toastId = toast.loading('Updating...');
     try {
-      const response = await fetch(`/api/schools/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const response = await fetch(`/api/schools/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
       if (response.ok) {
-        toast.success('School updated successfully!', { id: toastId });
+        toast.success('School updated!', { id: toastId });
         router.push('/showSchools');
       } else {
         const result = await response.json();
@@ -52,8 +43,16 @@ export default function EditSchoolPage() {
     }
   };
 
-  if (status === 'loading') return <p>Loading session...</p>;
-  if (status === 'unauthenticated' || session?.user?.role !== 'admin') return <p>Access Denied.</p>;
+  if (status === 'loading') return <p>Loading...</p>;
+  if (status === 'unauthenticated' || session?.user?.role !== 'admin') {
+    return (
+        <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow flex items-center justify-center"><p>Access Denied.</p></main>
+            <Footer />
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -98,7 +97,7 @@ export default function EditSchoolPage() {
             </div>
             <div>
               <label htmlFor="rating" className="block text-sm font-medium text-gray-800">Rating (1-5)</label>
-              <input id="rating" type="number" step="0.1" {...register('rating', { required: 'Rating is required', valueAsNumber: true, min: { value: 1, message: 'Must be at least 1' }, max: { value: 5, message: 'Must be no more than 5' } })} className="mt-1 block w-full px-3 py-2 border rounded-md" />
+              <input id="rating" type="number" step="0.1" {...register('rating', { required: 'Rating is required', valueAsNumber: true, min: 1, max: 5 })} className="mt-1 block w-full px-3 py-2 border rounded-md" />
               {errors.rating && <p className="text-red-500 text-xs mt-1">{errors.rating.message}</p>}
             </div>
             <div>
@@ -108,7 +107,7 @@ export default function EditSchoolPage() {
             </div>
             <p className="text-xs text-gray-500">Note: Image cannot be changed from the edit form.</p>
             <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400">
-              {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
         </div>
